@@ -1,59 +1,65 @@
-resource "aws_vpc" "main" {
-  cidr_block = "172.20.0.0/16"
-
-  enable_dns_hostnames = true
-  enable_dns_support = true
+### Create VPC
+resource "aws_vpc" "IN8-vpc" {
+  cidr_block       = "172.31.0.0/16"
   instance_tenancy = "default"
 
-  tags = local.global_tags
-}
-
-resource "aws_default_security_group" "default" {
-  vpc_id = aws_vpc.main.id
-
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  tags = {
+    Name = "prod-vpc"
   }
-
-  tags = local.global_tags
 }
 
-resource "aws_subnet" "sn_az" {
-  count = length(local.availability_zones)
+resource "aws_subnet" "in8-subnet" {
+  vpc_id     = aws_vpc.IN8-vpc.id
+  cidr_block = "172.31.0.0/20"
+    map_public_ip_on_launch =   "true"
+  availability_zone    =   var.AWS_REGION_AZ_WEB_1
 
-  availability_zone = local.availability_zones[count.index]
-
-  vpc_id = aws_vpc.main.id
-  map_public_ip_on_launch = false
-
-  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 5, count.index+1)
-
-  tags = local.global_tags
-}
-
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = local.global_tags
-}
-
-resource "aws_route_table" "rt" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+  tags = {
+    Name = "prod-subnet-in8-subnet"
   }
-
-  tags = local.global_tags
 }
 
-resource "aws_route_table_association" "rt_assoc" {
-  count = length(aws_subnet.sn_az)
+### Criação de Internet Nat Gateway
+resource "aws_internet_gateway" "prod-igw" {
+  vpc_id = aws_vpc.IN8-vpc.id
 
-  route_table_id = aws_route_table.rt.id
-  subnet_id = aws_subnet.sn_az[count.index].id
+  tags = {
+    Name = "prod-igw"
+  }
+}
+
+### Criação de rota customizadas para subnets públicas
+resource "aws_route_table" "prod-public-crt" {
+    vpc_id = aws_vpc.IN8-vpc.id
+    route {
+        cidr_block = "0.0.0.0/0"
+        gateway_id = aws_internet_gateway.prod-igw.id
+    }
+
+    tags = {
+        Name = "prod-public-crt"
+    }
+}
+
+### Criação de Elastic IP para NAT Gateway
+resource "aws_eip" "nat" {
+vpc      = true
+    tags = {
+        Name = "prod-elastic-ip-crt"
+    }
+}
+
+### Criação de NAT Gateway
+resource "aws_nat_gateway" "nat-gw" {
+allocation_id = aws_eip.nat.id
+subnet_id = aws_subnet.in8-subnet.id
+depends_on = [aws_internet_gateway.prod-igw]
+    tags = {
+        Name = "prod-nat-gateway-crt"
+    }
+}
+### Define Route
+resource "aws_main_route_table_association" "IN8-route" {
+  vpc_id         = aws_vpc.IN8-vpc.id
+  route_table_id = aws_route_table.prod-public-crt.id
 }
