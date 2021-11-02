@@ -4,13 +4,13 @@ variable "server_region" {
   type        = string
   default     = "sa-east-1"
 }
-### Usuario p/ openVPN Client
+### User p/ openVPN Client
 variable "server_username" {
   description = "Admin Username to access server"
   type        = string
   default     = "openvpn"
 }
-### USenha p/ openVPN Client
+### Password p/ openVPN Client
 variable "server_password" {
   description = "Admin Password to access server"
   type        = string
