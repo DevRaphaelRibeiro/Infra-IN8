@@ -7,7 +7,7 @@ resource "aws_vpc" "IN8-vpc" {
     Name = "prod-vpc"
   }
 }
-
+### Create Subnet
 resource "aws_subnet" "in8-subnet" {
   vpc_id     = aws_vpc.IN8-vpc.id
   cidr_block = "172.31.0.0/20"
@@ -19,7 +19,7 @@ resource "aws_subnet" "in8-subnet" {
   }
 }
 
-### Criação de Internet Nat Gateway
+### Create Internet Nat Gateway
 resource "aws_internet_gateway" "prod-igw" {
   vpc_id = aws_vpc.IN8-vpc.id
 
@@ -28,7 +28,7 @@ resource "aws_internet_gateway" "prod-igw" {
   }
 }
 
-### Criação de rota customizadas para subnets públicas
+### Creating custom routes for public subnets
 resource "aws_route_table" "prod-public-crt" {
     vpc_id = aws_vpc.IN8-vpc.id
     route {
@@ -41,7 +41,7 @@ resource "aws_route_table" "prod-public-crt" {
     }
 }
 
-### Criação de Elastic IP para NAT Gateway
+### Creating Elastic IP for NAT Gateway
 resource "aws_eip" "nat" {
 vpc      = true
     tags = {
@@ -49,7 +49,7 @@ vpc      = true
     }
 }
 
-### Criação de NAT Gateway
+### NAT Gateway Creation
 resource "aws_nat_gateway" "nat-gw" {
 allocation_id = aws_eip.nat.id
 subnet_id = aws_subnet.in8-subnet.id
